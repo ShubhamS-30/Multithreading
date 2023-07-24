@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <windows.h>
 using namespace std;
-void task(int l, int r, string target_folder, vector<string> &source_files, string destination_folder)
+void task(int l, int r, string target_folder, vector<string> source_files, string destination_folder)
 {
     string target_file, dest_file;
     for (int i = l; i <= r; i++)
@@ -16,65 +16,48 @@ void task(int l, int r, string target_folder, vector<string> &source_files, stri
         CopyFile(target_file.c_str(), dest_file.c_str(), true);
     }
 }
-float Multithreading(int file_num, vector<string> &source_files, string target_folder, string destination_folder)
+float Multithreading(int num_threads, int file_num, vector<string> &source_files, string target_folder, string destination_folder)
 {
-    // to be implemented
+    if (mkdir(destination_folder.c_str()) == 1)
+    {
+        cout << "FAILED TO CREATE DESTINATION FOLDER" << endl;
+        return -1;
+    }
+
     int l, r, batch_size;
     l = 0;
-    r = min(file_num,int(source_files.size()));
-    
+    r = min(file_num, int(source_files.size()));
+    batch_size = file_num / num_threads;
 
-    int n = 5; // Number of threads to create
+    if (batch_size == 0)
+    {
+        cout << "Number of Images should be greater than the number of threads created" << endl;
+        return -1;
+    }
+    int n = num_threads;
 
-    batch_size = file_num/n;
-   
+    auto begin = std::chrono::high_resolution_clock::now();
 
-    // while (l <= r)
-    // {
-        vector<thread> threads;
-        for (int i = 0; i < n; ++i)
-        {
+    vector<thread> threads;
+    for (int i = 0; i < n; ++i)
+    {
+        if (i < n - 1)
             threads.push_back(thread(task, l, l + batch_size - 1, target_folder, source_files, destination_folder));
-            l += batch_size;
-        }
-        for (auto &thread : threads)
-        {
-            thread.join();
-        }
-    // }
-    // // Create threads
-    // for (int i = 0; i < n; ++i)
-    // {
-    //     threads.push_back(thread(threadFunction, i));
-    // }
-
-    // // Join threads
-    // for (auto &thread : threads)
-    // {
-    //     thread.join();
-    // }
-
-    cout << "All threads have finished executing." << endl;
-    return 0.0;
+        else
+            threads.push_back(thread(task, l, r - 1, target_folder, source_files, destination_folder));
+        l += batch_size;
+    }
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+    // All threads have finished executing.
+    return elapsed.count() * 1e-9;
 }
 int main()
 {
-    // copy file from one place to another
-    // CopyFile("./IMG/2.jpg","./demo/2.jpg",true);
-
-    // thread t1(fun1, "X");
-    // thread t2(fun1, "O");
-    // t2.join();
-    // t1.join();
-
-    // write to csv
-    // vector<int> v = {1,2,3,4,5,6};
-    // ofstream output_file("test_c++.csv");
-    // for(int i = 0;i<v.size();i++)
-    // {
-    //     output_file<<v[i]<<endl;
-    // }
-    auto begin = std::chrono::high_resolution_clock::now();
     vector<string> source_files;
     string target_folder = "./IMG/";
     DIR *dr;
@@ -91,16 +74,28 @@ int main()
         }
         closedir(dr); // close all directory
     }
-    cout << source_files.size() << endl;
-    // for (int i = 0; i <= 100; i++)
-    //     cout << source_files[i] << endl;
+    cout << "Number of files in source folder = " << source_files.size() << endl;
 
-    // task fun working
-    // task(0, 100, target_folder, source_files, "./demo/");
-    cout<<"A"<<endl;
-    float x = Multithreading(1000,source_files,target_folder,"./demo/");
-    auto end = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-    cout << "time = " << elapsed.count() * 1e-9 << endl;
+    string destination_folder;
+    vector<vector<float>> results;
+    for (int i = 1; i <= 11; i++)
+    {
+        destination_folder = "./destination_" + to_string(i) + '/';
+        float x = Multithreading(i, 10000, source_files, target_folder, destination_folder);
+        results.push_back({float(i), x});
+    }
+    for (auto x : results)
+    {
+        cout << x[0] << " " << x[1] << endl;
+    }
+    std::ofstream out("copy_images_cpp.csv");
+    out << "Threads" << ',' << "Time";
+    out << '\n';
+    for (auto &row : results)
+    {
+        for (auto col : row)
+            out << col << ',';
+        out << '\n';
+    }
     return 0;
 }
