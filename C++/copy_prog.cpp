@@ -124,7 +124,7 @@ int main()
 {
 
     // location of folder where files to be copied are stored.
-    string target_folder = "./IMG/";
+    string target_folder = "../IMG/";
 
     // geting files to be copied.
     vector<string> source_files = getFiles(target_folder);
@@ -142,7 +142,7 @@ int main()
         destination_folder = "./destination_" + to_string(i) + '/';
 
         // calling multithreading function for i threads and 10000 files
-        float x = Multithreading(i, 10000, source_files, target_folder, destination_folder);
+        float x = Multithreading(i, 10, source_files, target_folder, destination_folder);
 
         // adding time taken to results
         results.push_back({float(i), x});
