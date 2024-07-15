@@ -10,9 +10,9 @@ using namespace std;
 
 // this function takes the parameter 'source_files' that contains the name of all the files to be copied.
 
-// parameters 'l' and 'r' denote the index of elements of 'source_files' from which the copying process starts.
+// parameters 'l' and 'r' denote the index of elements of 'source_files' from which the copying process starts and ends.
 
-// parameter 'destinatio_folder' contains the path where all copied files are stored.
+// parameter 'destination_folder' contains the path where all copied files are stored.
 
 // parameter 'target_folder' contains the name of folder where all the files to be copied are stored.
 void task(int l, int r, string target_folder, vector<string> source_files, string destination_folder)
@@ -28,6 +28,7 @@ void task(int l, int r, string target_folder, vector<string> source_files, strin
 
         // copies file from source destination to target destination.
         CopyFile(target_file.c_str(), dest_file.c_str(), true);
+        // third argument means -> IF TRUE and the new file specified by dest_file already exists, the function fails. If this parameter is FALSE and the new file already exists, the function overwrites the existing file and succeeds.
     }
 }
 float Multithreading(int num_threads, int file_num, vector<string> &source_files, string target_folder, string destination_folder)
@@ -67,7 +68,7 @@ float Multithreading(int num_threads, int file_num, vector<string> &source_files
         else
             threads.push_back(thread(task, l, r - 1, target_folder, source_files, destination_folder));
 
-        // incrementing the pointer
+        // moving the window
         l += batch_size;
     }
 
