@@ -95,6 +95,7 @@ public:
     /// @param r ending index
     void Task(int l, int r)
     {
+        r = min(r,(int)imageNames.size()-1);
         for (int i = l; i <= r; i++)
         {
             ConvertToGrayScale(imageNames[i]);
@@ -148,13 +149,39 @@ public:
         return elapsed.count() * 1e-9;
     }
 };
-
+/// @brief stores result in csv file
+/// @param results contains the time taken
+/// @param csv_name name of csv file
+void saveResults(vector<vector<double>> &results, string csv_name)
+{
+    // storing results into csv file
+    ofstream out(csv_name.c_str());
+    out << "Threads" << ',' << "Time\n";
+    for (auto &row : results)
+    {
+        for (auto col : row)
+            out << col << ',';
+        out << '\n';
+    }
+}
 int main()
 {
     string target_folder = "../IMG/";
     string file_names_path = "../file_names.txt";
-    GrayScaleConverter g(target_folder, file_names_path, "Test");
-    double Timetaken = g.ConvertToGrayScaleUsingMultithreading(4, 7);
-    cout << "TIME TAKEN = " << Timetaken << endl;
+    int numOfImages = 30000;
+    int threadLimit = 11;
+    vector<vector<double>> timeTaken(threadLimit);
+    for(int threads = 1;threads<=threadLimit;threads++)
+    {
+        string folder_name = "Grayscale_" + to_string(threads);
+        GrayScaleConverter g(target_folder, file_names_path, folder_name);
+        double duration = g.ConvertToGrayScaleUsingMultithreading(threads, numOfImages);
+        cout << "TIME TAKEN BY THREAD "<< threads <<" = " <<duration<< endl;
+
+        timeTaken[threads-1] = {(double)threads,duration};
+    }
+    string csv_name = "grayscale_images_C++.csv";
+    saveResults(timeTaken,csv_name);
+    
     return 0;
 }
