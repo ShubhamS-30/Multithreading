@@ -1,33 +1,30 @@
-#include <iostream>
-#include <fstream>
+#include <bits/stdc++.h>
 #include <thread>
+#include <dirent.h>
 #include <ctime>
 #include <chrono>
 #include <filesystem>
 #include <windows.h>
-#include <vector>
-#include <string>
-#include <opencv2/opencv.hpp>
 using namespace std;
-class GrayScaleConverter
+
+class CopyFiles
 {
 private:
     string targetFolder = "";
     string file_name_path = "";
-    vector<string> imageNames = "";
+    vector<string> imageNames;
     string destinationFolderPath = "";
     bool folderCreated = false;
 
 public:
-    GrayScaleConverter(string targetFolder, string file_name_path, string destinationFolderPath)
+    CopyFiles(string targetFolder, string file_name_path, string destinationFolderPath)
     {
         this->targetFolder = targetFolder;
         this->file_name_path = file_name_path;
         this->destinationFolderPath = destinationFolderPath;
         GetImageNames();
-        createFolder(this->destinationFolderPath);
+        createFolder(destinationFolderPath);
     }
-
     /// @brief Function that stores all the file names in imageNames vector that are stored in a txt file at file_name_path location.
     void GetImageNames()
     {
@@ -44,7 +41,6 @@ public:
         }
         file_names.close();
     }
-
     /// @brief Function to create a directory
     /// @param folderName name of the directory to be created
     /// @return true if success else return false
@@ -56,7 +52,7 @@ public:
         // Create directory using CreateDirectory function
         if (CreateDirectory(path, NULL) || GetLastError() == ERROR_ALREADY_EXISTS)
         {
-            cout << "Folder created successfully." << endl;
+            cout << "Folder " << folderName << " created successfully." << endl;
             folderCreated = true;
             return true;
         }
@@ -67,40 +63,17 @@ public:
         }
     }
 
-    /// @brief function to convert image at sourceImg location to grayscale.
-    /// @param sourceImg location of input image.
-    void ConvertToGrayScale(string sourceImg)
-    {
-        string sourceImgPath = targetFolder + sourceImg;
-        cv::Mat InputImage = cv::imread(sourceImgPath);
-
-        if (!InputImage.data)
-        {
-            cerr << "Image = " << sourceImgPath << "Not found" << endl;
-            return;
-        }
-        cv::Mat GrayImage;
-        cv::cvtColor(InputImage, GrayImage, cv::COLOR_BGR2GRAY);
-        SaveImage(GrayImage, sourceImg);
-    }
-
-    /// @brief  Save GrayImg to the destination path with name filename
-    /// @param GrayImg Image to be saved
-    /// @param filename name of the saved file
-    void SaveImage(cv::Mat GrayImg, string filename)
-    {
-        cv::imwrite("./" + destinationFolderPath + "/grayscale_" + filename, GrayImg);
-    }
-
-    /// @brief converts images in imageNames vector from index l to r to grayscale.
-    /// @param l starting index
-    /// @param r ending index
     void Task(int l, int r)
     {
         r = min(r, (int)imageNames.size() - 1);
+        string dest_file, source_file;
         for (int i = l; i <= r; i++)
         {
-            ConvertToGrayScale(imageNames[i]);
+            // destination folder + file name give the relative path to the location where copied files are stored.
+            dest_file = "./" + destinationFolderPath + '/' + imageNames[i];
+            source_file = targetFolder + imageNames[i];
+            // copies file from source destination to target destination.
+            CopyFile(source_file.c_str(), dest_file.c_str(), true);
         }
     }
     /// @brief Function to validate the parameters and paths
@@ -117,11 +90,7 @@ public:
         else
             return true;
     }
-    /// @brief Uses multithreading to convert large number of images to grayscale
-    /// @param numOfThreads number of threads to be used for multithreading
-    /// @param numOfImages number of images to be converted to grayscale
-    /// @return time take in seconds
-    double ConvertToGrayScaleUsingMultithreading(int numOfThreads, int numOfImages)
+    double CopyImagesUsingMultithreading(int numOfThreads, int numOfImages)
     {
         if (!check(numOfThreads, numOfImages))
             return -1;
@@ -134,7 +103,7 @@ public:
         int rem = numOfImages % numOfThreads;
 
         vector<thread> threads;
-        GrayScaleConverter *instance = this;
+        CopyFiles *instance = this;
 
         auto begin = chrono::high_resolution_clock::now();
 
@@ -185,19 +154,18 @@ int main()
 {
     string target_folder = "../IMG/";
     string file_names_path = "../file_names.txt";
-    int numOfImages = 30000;
+    int numOfImages = 10000;
     int threadLimit = 11;
     vector<vector<double>> timeTaken(threadLimit);
     for (int threads = 1; threads <= threadLimit; threads++)
     {
-        string folder_name = "Grayscale_" + to_string(threads);
-        GrayScaleConverter g(target_folder, file_names_path, folder_name);
-        double duration = g.ConvertToGrayScaleUsingMultithreading(threads, numOfImages);
+        string folder_name = "CopyImage_" + to_string(threads);
+        CopyFiles Copy(target_folder, file_names_path, folder_name);
+        double duration = Copy.CopyImagesUsingMultithreading(threads, numOfImages);
         cout << "TIME TAKEN BY THREAD " << threads << " = " << duration << endl;
         timeTaken[threads - 1] = {(double)threads, duration};
     }
-    string csv_name = "grayscale_images_C++.csv";
+    string csv_name = "copyImages_cpp.csv";
     saveResults(timeTaken, csv_name);
-
     return 0;
 }
